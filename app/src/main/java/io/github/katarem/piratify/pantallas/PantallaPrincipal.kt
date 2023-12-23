@@ -3,53 +3,61 @@ package io.github.katarem.piratify.pantallas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.katarem.piratify.R
+import io.github.katarem.piratify.model.Cancion
 import io.github.katarem.piratify.model.ReproductorModel
 
 @Composable
 fun PantallaPrincipal(){
-    val model = ReproductorModel()
-    val portadaCancion = model.currentSongImage.collectAsState()
+    val model : ReproductorModel = viewModel()
+    val cancionActual = model.currentSong.collectAsState().value
     Column(
         Modifier.fillMaxSize()
     ){
         Header()
-        SongInfoText()
-        Image(painter = painterResource(id = portadaCancion.value),
+        SongInfoText(cancionActual)
+        Image(painter = painterResource(id = cancionActual.portada),
             contentDescription = "",
             Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(18.dp)
+                .clip(RoundedCornerShape(20.dp)),
             contentScale = ContentScale.Crop,)
-        PlayerControls()
+        PlayerControls(model, cancionActual)
     }
 }
 
 @Composable
-fun SongInfoText(){
-    val model = ReproductorModel()
-    val nombreCancion = model.currentSongTitle.collectAsState()
+fun SongInfoText(cancionActual: Cancion){
     Column (
         Modifier
             .fillMaxWidth()
             .padding(10.dp)){
-        Text(text = "Now playing", fontSize = 20.sp)
-        Text(text = nombreCancion.value, fontSize = 20.sp)
+        Text(text = "Now playing", fontSize = 25.sp)
+        Text(text = cancionActual.nombre + " - " + cancionActual.artista, fontSize = 25.sp)
     }
 }
 
@@ -72,18 +80,30 @@ fun Header(){
 }
 
 @Composable
-fun PlayerControls(){
-    val model = ReproductorModel()
+fun PlayerControls(model: ReproductorModel, cancionActual: Cancion){
+
+    val context = LocalContext.current
+
     val isShuffle = model.isShuffle.collectAsState()
     val isRepeat = model.isRepeating.collectAsState()
-    val isPlaying = model.isPlaying.collectAsState()
+    var playIcon = R.drawable.play
+    var repeatIcon = R.drawable.repeat
+    var shuffleIcon = R.drawable.shuffle
+
+    if(isRepeat.value) repeatIcon = R.drawable.activated_repeat
+    if(isShuffle.value) shuffleIcon = R.drawable.activated_shuffle
+
+    LaunchedEffect(Unit){
+        model.createExoPlayer(context)
+        model.playSong(context)
+    }
 
     Column(
         Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            SliderView()
+            SliderView(cancionActual)
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -93,19 +113,25 @@ fun PlayerControls(){
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = { model.changeShuffleState(!isShuffle.value) }){
-                    Image(painter = painterResource(id = R.drawable.shuffle), contentDescription = "")
+                    Image(painter = painterResource(id = shuffleIcon), contentDescription = "")
                 }
-                TextButton(onClick = { model.prevSong() }){
+                TextButton(onClick = { model.prevSong(context) }){
                     Image(painter = painterResource(id = R.drawable.prev), contentDescription = "")
                 }
-                TextButton(onClick = { model.changePlayingState(!isPlaying.value) }){
-                    Image(painter = painterResource(id = R.drawable.play), contentDescription = "")
+                Button(onClick = { model.playOrPause()
+                                    if(model.isPlaying) playIcon = R.drawable.baseline_pause_24
+                                    else playIcon = R.drawable.play}, modifier = Modifier
+                    .size(70.dp)
+                    .clip(
+                        CircleShape
+                    )){
+                    Image(painter = painterResource(id = playIcon), contentDescription = "", modifier = Modifier.fillMaxSize())
                 }
-                TextButton(onClick = { model.nextSong() }){
+                TextButton(onClick = { model.nextSong(context) }){
                     Image(painter = painterResource(id = R.drawable.next), contentDescription = "")
                 }
                 TextButton(onClick = {  model.changeRepeatingState(!isRepeat.value) }){
-                    Image(painter = painterResource(id = R.drawable.baseline_repeat_24), contentDescription = "")
+                    Image(painter = painterResource(id = repeatIcon), contentDescription = "")
                 }
             }
 
@@ -114,10 +140,25 @@ fun PlayerControls(){
     }
 }
 
+fun durationParsed(tiempo: Int): String{
+    val minutos = tiempo/60
+    val segundos = tiempo - (minutos*60)
+    var minutosString = "" + minutos
+    var segundosString = "" + segundos
+    if(segundos<10) segundosString = "0$segundosString"
+    if(minutos<10) minutosString = "0$minutosString"
+    return "$minutosString:$segundosString"
+}
+
+
+
+
 @Composable
-fun SliderView(){
-    val model = ReproductorModel()
-    val songDuration = model.songDuration.collectAsState()
+fun SliderView(cancionActual: Cancion){
+
+    val model: ReproductorModel = viewModel()
+    val progreso = model.progreso.collectAsState()
+
     Column(
         Modifier
             .padding(10.dp)
@@ -125,8 +166,8 @@ fun SliderView(){
     ) {
         Slider(value = 0f, onValueChange = {})
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "00:00")
-            Text(text = songDuration.value)
+            Text(text = durationParsed((progreso.value/1000)))
+            Text(text = cancionActual.duracion)
         }
     }
 }
