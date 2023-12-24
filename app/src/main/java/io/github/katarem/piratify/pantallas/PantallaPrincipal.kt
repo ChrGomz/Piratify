@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +38,9 @@ fun PantallaPrincipal(){
     val model : ReproductorModel = viewModel()
     val cancionActual = model.currentSong.collectAsState().value
     Column(
-        Modifier.fillMaxSize()
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF191414))
     ){
         Header()
         SongInfoText(cancionActual)
@@ -56,8 +61,8 @@ fun SongInfoText(cancionActual: Cancion){
         Modifier
             .fillMaxWidth()
             .padding(10.dp)){
-        Text(text = "Now playing", fontSize = 25.sp)
-        Text(text = cancionActual.nombre + " - " + cancionActual.artista, fontSize = 25.sp)
+        Text(text = "Now playing", fontSize = 25.sp, color = Color.White)
+        Text(text = cancionActual.nombre + " - " + cancionActual.artista, fontSize = 25.sp, color = Color.White)
     }
 }
 
@@ -68,7 +73,7 @@ fun Header(){
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Color(R.color.spotify_green))
+            .background(Color(0xFF1db954))
             .padding(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ){
@@ -83,16 +88,16 @@ fun Header(){
 fun PlayerControls(model: ReproductorModel, cancionActual: Cancion){
 
     val context = LocalContext.current
-
+    val isPlaying = model.isPlaying.collectAsState()
     val isShuffle = model.isShuffle.collectAsState()
     val isRepeat = model.isRepeating.collectAsState()
-    var playIcon = R.drawable.play
+    var playIcon = R.drawable.pause
     var repeatIcon = R.drawable.repeat
     var shuffleIcon = R.drawable.shuffle
 
     if(isRepeat.value) repeatIcon = R.drawable.activated_repeat
     if(isShuffle.value) shuffleIcon = R.drawable.activated_shuffle
-
+    if(!isPlaying.value) playIcon = R.drawable.play
     LaunchedEffect(Unit){
         model.createExoPlayer(context)
         model.playSong(context)
@@ -112,19 +117,18 @@ fun PlayerControls(model: ReproductorModel, cancionActual: Cancion){
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = { model.changeShuffleState(!isShuffle.value) }){
+                TextButton(onClick = { model.changeShuffleState(context,!isShuffle.value) }){
                     Image(painter = painterResource(id = shuffleIcon), contentDescription = "")
                 }
                 TextButton(onClick = { model.prevSong(context) }){
                     Image(painter = painterResource(id = R.drawable.prev), contentDescription = "")
                 }
-                Button(onClick = { model.playOrPause()
-                                    if(model.isPlaying) playIcon = R.drawable.baseline_pause_24
-                                    else playIcon = R.drawable.play}, modifier = Modifier
+                Button(onClick = { model.playOrPause() }, modifier = Modifier
                     .size(70.dp)
                     .clip(
                         CircleShape
-                    )){
+                    ),colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1db954))
+                ){
                     Image(painter = painterResource(id = playIcon), contentDescription = "", modifier = Modifier.fillMaxSize())
                 }
                 TextButton(onClick = { model.nextSong(context) }){
@@ -155,8 +159,8 @@ fun durationParsed(tiempo: Int): String{
 
 @Composable
 fun SliderView(cancionActual: Cancion){
-
     val model: ReproductorModel = viewModel()
+    val duracion = model.duracion.collectAsState()
     val progreso = model.progreso.collectAsState()
 
     Column(
@@ -164,10 +168,11 @@ fun SliderView(cancionActual: Cancion){
             .padding(10.dp)
             .fillMaxWidth()
     ) {
-        Slider(value = 0f, onValueChange = {})
+        Slider(value = progreso.value.toFloat(), onValueChange = { model.changeProgreso(it.toInt())}, valueRange = 0f..duracion.value.toFloat(),
+            colors = SliderDefaults.colors(thumbColor = Color(0xFF1db954)))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = durationParsed((progreso.value/1000)))
-            Text(text = cancionActual.duracion)
+            Text(text = durationParsed((progreso.value/1000)), color = Color.White)
+            Text(text = durationParsed(duracion.value/1000), color = Color.White)
         }
     }
 }
@@ -178,7 +183,7 @@ fun SliderView(cancionActual: Cancion){
 fun UIControls(){
     Row(
         Modifier
-            .background(Color(R.color.spotify_green))
+            .background(Color(0xFF1db954))
             .height(80.dp)
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,

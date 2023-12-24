@@ -19,23 +19,26 @@ import kotlinx.coroutines.launch
 
 class ReproductorModel: ViewModel() {
 
+    //Lista de canciones
+    private val canciones = listOf<Cancion>(
+        Cancion("Rip & Tear",R.drawable.doom_album,"Doomguy","Doom OST",R.raw.rip_and_tear_doom),
+        Cancion("El Arte Sano",R.drawable.keyblade,"Keyblade","",R.raw.el_arte_sano_keyblade),
+        Cancion("El Violador",R.drawable.piterg,"Piter G","",R.raw.el_violador_piterg),
+        Cancion("Es Épico",R.drawable.muerte_canserbero,"Canserbero","Muerte",R.raw.es_epico_canserbero),
+        Cancion("Maw",R.drawable.maw,"Gato","miau",R.raw.maw_master)
+    )
+    //Lista para shuffle
+    private val cancionesShuffled = canciones.shuffled()
+
     //index de la cancion
     private val _index = MutableStateFlow(0)
+
     val index = _index.asStateFlow()
-
-    //Cancion actual designada
-    private val canciones = listOf<Cancion>(
-        Cancion("Rip & Tear",R.drawable.doom_album,"Doomguy","4:18","Doom OST",R.raw.rip_and_tear_doom),
-        Cancion("El Arte Sano",R.drawable.keyblade,"Keyblade","5:36","",R.raw.el_arte_sano_keyblade),
-        Cancion("El Violador",R.drawable.piterg,"Piter G","3:18","",R.raw.el_violador_piterg),
-        Cancion("Es Épico",R.drawable.muerte_canserbero,"Canserbero","6:01","Muerte",R.raw.es_epico_canserbero),
-        Cancion("Maw",R.drawable.maw,"Gato","0:16","miau",R.raw.maw_master)
-    )
-
+    //Player
     private val _exoPlayer: MutableStateFlow<ExoPlayer?> = MutableStateFlow(null)
     val exoPlayer = _exoPlayer.asStateFlow()
 
-
+    //Canción actual
     private var _currentSong = MutableStateFlow(canciones[index.value])
     val currentSong = _currentSong.asStateFlow()
 
@@ -48,28 +51,32 @@ class ReproductorModel: ViewModel() {
     val progreso = _progreso.asStateFlow()
 
     //Está Repeat
-    private var _isRepeating = MutableStateFlow(true)
+    private var _isRepeating = MutableStateFlow(false)
     val isRepeating = _isRepeating.asStateFlow()
 
     //Está Shuffled
     private var _isShuffle = MutableStateFlow(false)
     val isShuffle = _isShuffle.asStateFlow()
 
-    var isPlaying = false
+    //Reproduciendo o no
+    private var _isPlaying = MutableStateFlow(true)
+    var isPlaying = _isPlaying.asStateFlow()
 
+    //Repite o no
     fun changeRepeatingState(newState: Boolean){
         _isRepeating.value = newState
     }
-
-    fun changeShuffleState(newState: Boolean){
+    //Cambiar si mezclamos o no las canciones
+    fun changeShuffleState(context: Context, newState: Boolean){
         _isShuffle.value = newState
+        if(_isShuffle.value) _index.value = 0
     }
-
+    //Crear Player
     fun createExoPlayer(context: Context){
         _exoPlayer.value = ExoPlayer.Builder(context).build()
         exoPlayer.value!!.prepare()
     }
-
+    //Reproducir
     fun playSong(context: Context){
         val item = MediaItem.fromUri(obtenerRuta(context,currentSong.value.media))
         exoPlayer.value!!.setMediaItem(item)
@@ -87,9 +94,9 @@ class ReproductorModel: ViewModel() {
                             }
                         }
                     }
-                    Player.STATE_BUFFERING->{}//nada basicamente
+                    //Player.STATE_BUFFERING->{}//nada basicamente
                     Player.STATE_ENDED->{nextSong(context)}
-                    Player.STATE_IDLE->{}
+                    //Player.STATE_IDLE->{}
                 }
             }
         })
@@ -99,18 +106,17 @@ class ReproductorModel: ViewModel() {
         _exoPlayer.value!!.release()
         super.onCleared()
     }
-
+    //Pausar o reproducir
     fun playOrPause() {
         if (_exoPlayer.value!!.isPlaying){
             _exoPlayer.value!!.pause()
-            isPlaying = false
+            _isPlaying.value = false
         }else {
             _exoPlayer.value!!.play()
-            isPlaying = true
+            _isPlaying.value = true
         }
     }
-
-
+    //Cambiar canción XD
     fun CambiarCancion(context: Context) {
         _exoPlayer.value!!.stop()
         _exoPlayer.value!!.clearMediaItems()
@@ -118,31 +124,39 @@ class ReproductorModel: ViewModel() {
         _exoPlayer.value!!.prepare()
         _exoPlayer.value!!.playWhenReady = true
     }
-
+    //Siguiente canción
     fun nextSong(context: Context){
         if(_index.value==canciones.size-1 && isRepeating.value){
             _index.value = 0
-            _currentSong.value = canciones[_index.value]
+            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
+            else _currentSong.value = canciones[_index.value]
             CambiarCancion(context)
         }
         else if(_index.value < canciones.size-1){
             _index.value += 1
-            _currentSong.value = canciones[_index.value]
+            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
+            else _currentSong.value = canciones[_index.value]
             CambiarCancion(context)
         }
     }
-
+    //Canción previa
     fun prevSong(context: Context){
         if(_index.value==0 && isRepeating.value){
             _index.value = canciones.size-1
-            _currentSong.value = canciones[_index.value]
+            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
+            else _currentSong.value = canciones[_index.value]
             CambiarCancion(context)
         }
         else if(_index.value > 0){
             _index.value -= 1
-            _currentSong.value = canciones[_index.value]
+            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
+            else _currentSong.value = canciones[_index.value]
             CambiarCancion(context)
         }
+    }
+
+    fun changeProgreso(progreso: Int){
+        _exoPlayer.value!!.seekTo(progreso.toLong())
     }
 
     // Funcion auxiliar que devuelve la ruta de un fichero a partir de su ID
