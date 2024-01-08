@@ -10,7 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import io.github.katarem.piratify.pantallas.PantallaPrincipal
+import io.github.katarem.piratify.pantallas.PantallaReproductor
+import io.github.katarem.piratify.pantallas.Router
 import io.github.katarem.piratify.ui.theme.PiratifyTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,25 +21,18 @@ class MainActivity : ComponentActivity() {
             PiratifyTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    PantallaPrincipal()
+                    Router()
                 }
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-            text = "Hello $name!",
-            modifier = modifier
-    )
-}
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     PiratifyTheme {
-        Greeting("Android")
+        Router()
     }
 }

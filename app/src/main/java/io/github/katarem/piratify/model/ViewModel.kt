@@ -11,6 +11,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.katarem.piratify.R
+import io.github.katarem.piratify.entities.Album
+import io.github.katarem.piratify.entities.Albums
+import io.github.katarem.piratify.entities.Cancion
+import io.github.katarem.piratify.entities.Canciones
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,17 +23,12 @@ import kotlinx.coroutines.launch
 
 class ReproductorModel: ViewModel() {
 
+    //album o playlist elegido
+    private var _album = MutableStateFlow(Albums.Nightmare)
+    val album = _album.asStateFlow()
     //Lista de canciones
-    private val canciones = listOf<Cancion>(
-        Cancion("Rip & Tear",R.drawable.doom_album,"Doomguy","Doom OST",R.raw.rip_and_tear_doom),
-        Cancion("El Arte Sano",R.drawable.keyblade,"Keyblade","",R.raw.el_arte_sano_keyblade),
-        Cancion("El Violador",R.drawable.piterg,"Piter G","",R.raw.el_violador_piterg),
-        Cancion("Es Épico",R.drawable.muerte_canserbero,"Canserbero","Muerte",R.raw.es_epico_canserbero),
-        Cancion("Maw",R.drawable.maw,"Gato","miau",R.raw.maw_master)
-    )
-    //Lista para shuffle
-    private val cancionesShuffled = canciones.shuffled()
-
+    private var _canciones = MutableStateFlow(_album.value.canciones)
+    val canciones = _canciones.asStateFlow()
     //index de la cancion
     private val _index = MutableStateFlow(0)
 
@@ -39,7 +38,7 @@ class ReproductorModel: ViewModel() {
     val exoPlayer = _exoPlayer.asStateFlow()
 
     //Canción actual
-    private var _currentSong = MutableStateFlow(canciones[index.value])
+    private var _currentSong = MutableStateFlow(canciones.value[index.value])
     val currentSong = _currentSong.asStateFlow()
 
     //Duración total
@@ -62,6 +61,18 @@ class ReproductorModel: ViewModel() {
     private var _isPlaying = MutableStateFlow(true)
     var isPlaying = _isPlaying.asStateFlow()
 
+    //Cambiamos de Album. Sirve para poder llamar reproductor desde playlist y albumes
+    fun changeAlbum(newAlbum: Album, newIndex: Int, shuffleMode: Boolean) {
+        _album.value = newAlbum
+        if(shuffleMode) {
+            _isShuffle.value = true
+            _canciones.value = newAlbum.canciones.shuffled()
+        }
+        else _canciones.value = newAlbum.canciones
+        _index.value = newIndex
+        _currentSong.value = _canciones.value[_index.value]
+    }
+
     //Repite o no
     fun changeRepeatingState(newState: Boolean){
         _isRepeating.value = newState
@@ -69,7 +80,13 @@ class ReproductorModel: ViewModel() {
     //Cambiar si mezclamos o no las canciones
     fun changeShuffleState(context: Context, newState: Boolean){
         _isShuffle.value = newState
-        if(_isShuffle.value) _index.value = 0
+        if(_isShuffle.value) {
+            _index.value = 0
+            _canciones.value = _canciones.value.shuffled()
+        }
+        else{
+            _canciones.value = _album.value.canciones
+        }
     }
     //Crear Player
     fun createExoPlayer(context: Context){
@@ -117,7 +134,7 @@ class ReproductorModel: ViewModel() {
         }
     }
     //Cambiar canción XD
-    fun CambiarCancion(context: Context) {
+    fun cambiarCancion(context: Context) {
         _exoPlayer.value!!.stop()
         _exoPlayer.value!!.clearMediaItems()
         _exoPlayer.value!!.setMediaItem(MediaItem.fromUri(obtenerRuta(context, _currentSong.value.media)))
@@ -126,32 +143,28 @@ class ReproductorModel: ViewModel() {
     }
     //Siguiente canción
     fun nextSong(context: Context){
-        if(_index.value==canciones.size-1 && isRepeating.value){
+        if(_index.value==canciones.value.size-1 && isRepeating.value){
             _index.value = 0
-            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
-            else _currentSong.value = canciones[_index.value]
-            CambiarCancion(context)
+            _currentSong.value = canciones.value[_index.value]
+            cambiarCancion(context)
         }
-        else if(_index.value < canciones.size-1){
+        else if(_index.value < canciones.value.size-1){
             _index.value += 1
-            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
-            else _currentSong.value = canciones[_index.value]
-            CambiarCancion(context)
+            _currentSong.value = canciones.value[_index.value]
+            cambiarCancion(context)
         }
     }
     //Canción previa
     fun prevSong(context: Context){
         if(_index.value==0 && isRepeating.value){
-            _index.value = canciones.size-1
-            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
-            else _currentSong.value = canciones[_index.value]
-            CambiarCancion(context)
+            _index.value = canciones.value.size-1
+            _currentSong.value = canciones.value[_index.value]
+            cambiarCancion(context)
         }
         else if(_index.value > 0){
             _index.value -= 1
-            if(_isShuffle.value) _currentSong.value = cancionesShuffled[_index.value]
-            else _currentSong.value = canciones[_index.value]
-            CambiarCancion(context)
+            _currentSong.value = canciones.value[_index.value]
+            cambiarCancion(context)
         }
     }
 
