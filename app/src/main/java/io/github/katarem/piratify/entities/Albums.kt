@@ -103,7 +103,23 @@ object Albums{
             Canciones.SaveMe,
             Canciones.Maw,
             Canciones.ElViolador,
-            Canciones.ElArteSano
+            Canciones.ElArteSano,
+            Canciones.Leyenda,
+            Canciones.ElHipHopQueSe,
+            Canciones.AdiosEspania,
+            Canciones.Abrazate,
+            Canciones.TantasRazones,
+            Canciones.Urbanologia,
+            Canciones.Anticuerpos,
+            Canciones.Ahora,
+            Canciones.Gratis,
+            Canciones.EntreElPlacerYElDolor,
+            Canciones.RapEspaniol,
+            Canciones.TalComoEres,
+            Canciones.EllosyYo,
+            Canciones.PoesiaDeGuerra,
+            Canciones.Viviendo
+
         ).sortedBy { cancion -> cancion.nombre }
     )
 
