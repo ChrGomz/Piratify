@@ -30,6 +30,7 @@ import io.github.katarem.piratify.entities.Album
 import io.github.katarem.piratify.entities.Albums
 import io.github.katarem.piratify.entities.Cancion
 import io.github.katarem.piratify.model.ReproductorModel
+import io.github.katarem.piratify.utils.AppColors
 
 @Composable
 fun PantallaReproductor(album: Album, index: Int, isShuffle: Boolean){
@@ -40,7 +41,7 @@ fun PantallaReproductor(album: Album, index: Int, isShuffle: Boolean){
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFF191414)),
+            .background(AppColors.negro),
         verticalArrangement = Arrangement.Center
     ){
         SongInfoText(cancionActual.value)
@@ -112,7 +113,7 @@ fun PlayerControls(model: ReproductorModel, cancionActual: Cancion, album: Album
                     .size(70.dp)
                     .clip(
                         CircleShape
-                    ),colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1db954))
+                    ),colors = ButtonDefaults.buttonColors(containerColor = AppColors.verde)
                 ){
                     Image(painter = painterResource(id = playIcon), contentDescription = "", modifier = Modifier.fillMaxSize())
                 }
@@ -153,7 +154,7 @@ fun SliderView(cancionActual: Cancion){
             .fillMaxWidth()
     ) {
         Slider(value = progreso.value.toFloat(), onValueChange = { model.changeProgreso(it.toInt())}, valueRange = 0f..duracion.value.toFloat(),
-            colors = SliderDefaults.colors(thumbColor = Color(0xFF1db954)))
+            colors = SliderDefaults.colors(thumbColor = AppColors.verde))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = durationParsed((progreso.value/1000)), color = Color.White)
             Text(text = durationParsed(duracion.value/1000), color = Color.White)

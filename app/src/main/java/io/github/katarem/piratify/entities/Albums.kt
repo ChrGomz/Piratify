@@ -45,6 +45,27 @@ object Albums{
         Canciones.SaveMe
     ))
 
+    val ATravesDeMi = Album("A Través De Mí",R.drawable.atravesdemi,"Nach",2015,
+        listOf(
+            Canciones.Leyenda,
+            Canciones.ElHipHopQueSe,
+            Canciones.AdiosEspania,
+            Canciones.Abrazate,
+            Canciones.TantasRazones,
+            Canciones.Urbanologia,
+            Canciones.Anticuerpos,
+            Canciones.Ahora,
+            Canciones.Gratis,
+            Canciones.EntreElPlacerYElDolor,
+            Canciones.RapEspaniol,
+            Canciones.TalComoEres,
+            Canciones.EllosyYo,
+            Canciones.PoesiaDeGuerra,
+            Canciones.Viviendo
+        )
+    )
+
+
     val TodasLasCanciones = Album("allsongs",R.drawable.maw,"Todos los artistas",1970,
         listOf(
             Canciones.TheRootOfAllEvil,
@@ -86,7 +107,7 @@ object Albums{
         ).sortedBy { cancion -> cancion.nombre }
     )
 
-    val albums = listOf(Octavarium, Muerte, Nightmare)
+    val albums = listOf(Octavarium, Muerte, Nightmare, ATravesDeMi, TodasLasCanciones)
 
     fun forName(nombre: String): Album?{
         return albums.filter { album -> album.nombre.equals(nombre) }.firstOrNull()

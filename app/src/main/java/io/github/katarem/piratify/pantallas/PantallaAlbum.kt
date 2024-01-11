@@ -1,8 +1,10 @@
 package io.github.katarem.piratify.pantallas
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,10 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,26 +33,32 @@ import io.github.katarem.piratify.entities.Album
 import io.github.katarem.piratify.entities.Albums
 import io.github.katarem.piratify.entities.Cancion
 import io.github.katarem.piratify.entities.Playlists
+import io.github.katarem.piratify.utils.AppColors
 
 @Composable
 fun PantallaAlbum(album: Album, navController: NavController?){
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        AlbumDescription(album = album)
-        Button(onClick = { navController?.navigate(Rutas.PantallaReproductor.ruta + "/${album.nombre}/0/true") }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Modo aleatorio")
-        }
-        LazyColumn(modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp)
-            .weight(1f),content = {
-            itemsIndexed(album.canciones){
-                index,cancion ->
-                    CancionItem(index = index, cancion = cancion, onClick = { navController?.navigate(Rutas.PantallaReproductor.ruta + "/${album.nombre}/$index/false") })
+    Box(modifier = Modifier.background(AppColors.negro)){
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            AlbumDescription(album = album)
+            Button(onClick = { navController?.navigate(Rutas.PantallaReproductor.ruta + "/${album.nombre}/0/true") }, modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = AppColors.verde
+                )) {
+                Text(text = "Modo aleatorio")
             }
-        })
-        Text(text = "${album.canciones.size} canciones - ${duracionTotal(album)}", fontSize = 20.sp)
+            LazyColumn(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)
+                .weight(1f),content = {
+                itemsIndexed(album.canciones){
+                        index,cancion ->
+                    CancionItem(index = index, cancion = cancion, onClick = { navController?.navigate(Rutas.PantallaReproductor.ruta + "/${album.nombre}/$index/false") })
+                }
+            })
+            Text(text = "${album.canciones.size} canciones - ${duracionTotal(album)}", color = Color.White, fontSize = 20.sp)
+        }
     }
 
 }
@@ -59,8 +69,8 @@ fun CancionItem(index: Int, cancion: Cancion,onClick: () -> Unit){
         .height(35.dp)
         .fillMaxWidth()
         .clickable { onClick() }, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = "${index+1}. ${cancion.nombre}", fontSize = 20.sp)
-        Text(text = cancion.duracion, fontSize = 20.sp)
+        Text(text = "${index+1}. ${cancion.nombre}", color = Color.White, fontSize = 20.sp)
+        Text(text = cancion.duracion, color = Color.White, fontSize = 20.sp)
     }
 }
 
@@ -88,8 +98,10 @@ fun AlbumDescription(album: Album){
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(painter = painterResource(id = album.caratula), contentDescription = "",
             contentScale = ContentScale.Crop, modifier = Modifier.size(200.dp))
-        Text(text = album.nombre, fontSize = 20.sp)
-        Text(text = "${album.artista} - ${album.anio}", fontSize = 20.sp)
+        Column(Modifier.padding(5.dp)) {
+            Text(text = album.nombre, color = Color.White, fontSize = 20.sp)
+            Text(text = "${album.artista} - ${album.anio}", color = Color.White, fontSize = 20.sp)
+        }
     }
 }
 
