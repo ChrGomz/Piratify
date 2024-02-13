@@ -2,6 +2,10 @@ package io.github.katarem.piratify.pantallas
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +18,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -25,51 +33,112 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import io.github.katarem.piratify.R
 import io.github.katarem.piratify.entities.Album
 import io.github.katarem.piratify.entities.Albums
 import io.github.katarem.piratify.entities.Cancion
 import io.github.katarem.piratify.model.ReproductorModel
 import io.github.katarem.piratify.utils.AppColors
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun PantallaReproductor(album: Album, index: Int, isShuffle: Boolean){
-    val model : ReproductorModel = viewModel()
+fun PantallaReproductor(
+    album: Album,
+    index: Int,
+    isShuffle: Boolean,
+    navController: NavHostController, ) {
+    val model: ReproductorModel = viewModel()
     val context = LocalContext.current
 
     val cancionActual = model.currentSong.collectAsState()
+
+    val scope = rememberCoroutineScope()
+    var horizontalSwipe = remember { mutableStateOf(false) }
+    var verticalSwipe = remember { mutableStateOf(false) }
+
     Column(
         Modifier
             .fillMaxSize()
-            .background(AppColors.negro),
+            .background(AppColors.negro)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = { model.playOrPause() }
+                )
+            }
+            .scrollable(
+                state = rememberScrollableState { delta ->
+                    if (delta > 0) {
+                        if (!verticalSwipe.value){
+                            verticalSwipe.value = true
+                            scope.launch {
+                                navController.popBackStack()
+                                delay(1000)
+                                verticalSwipe.value = false
+                            }
+                        }
+                    }
+                    delta
+                },
+                orientation = Orientation.Vertical
+            )
+            .scrollable(
+                state = rememberScrollableState { delta ->
+                    if (!horizontalSwipe.value) {
+                        horizontalSwipe.value = true
+                        scope.launch {
+                            if (delta < 0) model.nextSong(context)
+                            else if (delta > 0) model.prevSong(context)
+                            delay(1500)
+                            horizontalSwipe.value = false
+                        }
+                    }
+                    delta
+                },
+                orientation = Orientation.Horizontal
+            ),
         verticalArrangement = Arrangement.Center
-    ){
+    ) {
         SongInfoText(cancionActual.value)
-        Image(painter = painterResource(id = cancionActual.value.portada),
+        Image(
+            painter = painterResource(id = cancionActual.value.portada),
             contentDescription = "",
             Modifier
                 .fillMaxWidth()
                 .padding(18.dp)
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(20.dp)),
-            contentScale = ContentScale.Crop,)
-        PlayerControls(model, cancionActual.value,album, index,isShuffle)
+            contentScale = ContentScale.Crop,
+        )
+        PlayerControls(model, cancionActual.value, album, index, isShuffle)
     }
 }
 
 @Composable
-fun SongInfoText(cancionActual: Cancion){
-    Column (
+fun SongInfoText(cancionActual: Cancion) {
+    Column(
         Modifier
             .fillMaxWidth()
-            .padding(10.dp)){
+            .padding(10.dp)
+    ) {
         Text(text = "Now playing", fontSize = 25.sp, color = Color.White)
-        Text(text = cancionActual.nombre + " - " + cancionActual.artista, fontSize = 25.sp, color = Color.White)
+        Text(
+            text = cancionActual.nombre + " - " + cancionActual.artista,
+            fontSize = 25.sp,
+            color = Color.White
+        )
     }
 }
 
 @Composable
-fun PlayerControls(model: ReproductorModel, cancionActual: Cancion, album: Album,index: Int, shuffleMode: Boolean){
+fun PlayerControls(
+    model: ReproductorModel,
+    cancionActual: Cancion,
+    album: Album,
+    index: Int,
+    shuffleMode: Boolean
+) {
 
     val context = LocalContext.current
     val isPlaying = model.isPlaying.collectAsState()
@@ -79,14 +148,22 @@ fun PlayerControls(model: ReproductorModel, cancionActual: Cancion, album: Album
     var repeatIcon = R.drawable.repeat
     var shuffleIcon = R.drawable.shuffle
 
-    if(isRepeat.value) repeatIcon = R.drawable.activated_repeat
-    if(isShuffle.value) shuffleIcon = R.drawable.activated_shuffle
-    if(!isPlaying.value) playIcon = R.drawable.play
-    LaunchedEffect(Unit){
+    if (isRepeat.value) repeatIcon = R.drawable.activated_repeat
+    if (isShuffle.value) shuffleIcon = R.drawable.activated_shuffle
+    if (!isPlaying.value) playIcon = R.drawable.play
+
+    LaunchedEffect(Unit) {
         //setteamos el album que recibimos
-        model.changeAlbum(album,index,shuffleMode)
+        model.changeAlbum(album, index, shuffleMode)
         model.createExoPlayer(context)
         model.playSong(context)
+    }
+
+    val currentSong = model.currentSong.collectAsState()
+
+    LaunchedEffect(currentSong.value) {
+        //actualizamos el icono de play/pause
+        playIcon = if (isPlaying.value) R.drawable.pause else R.drawable.play
     }
 
     Column(
@@ -103,24 +180,29 @@ fun PlayerControls(model: ReproductorModel, cancionActual: Cancion, album: Album
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = { model.changeShuffleState(context,!isShuffle.value) }){
+                TextButton(onClick = { model.changeShuffleState(context, !isShuffle.value) }) {
                     Image(painter = painterResource(id = shuffleIcon), contentDescription = "")
                 }
-                TextButton(onClick = { model.prevSong(context) }){
+                TextButton(onClick = { model.prevSong(context) }) {
                     Image(painter = painterResource(id = R.drawable.prev), contentDescription = "")
                 }
-                Button(onClick = { model.playOrPause() }, modifier = Modifier
-                    .size(70.dp)
-                    .clip(
-                        CircleShape
-                    ),colors = ButtonDefaults.buttonColors(containerColor = AppColors.verde)
-                ){
-                    Image(painter = painterResource(id = playIcon), contentDescription = "", modifier = Modifier.fillMaxSize())
+                Button(
+                    onClick = { model.playOrPause() }, modifier = Modifier
+                        .size(70.dp)
+                        .clip(
+                            CircleShape
+                        ), colors = ButtonDefaults.buttonColors(containerColor = AppColors.verde)
+                ) {
+                    Image(
+                        painter = painterResource(id = playIcon),
+                        contentDescription = "",
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-                TextButton(onClick = { model.nextSong(context) }){
+                TextButton(onClick = { model.nextSong(context) }) {
                     Image(painter = painterResource(id = R.drawable.next), contentDescription = "")
                 }
-                TextButton(onClick = {  model.changeRepeatingState(!isRepeat.value) }){
+                TextButton(onClick = { model.changeRepeatingState(!isRepeat.value) }) {
                     Image(painter = painterResource(id = repeatIcon), contentDescription = "")
                 }
             }
@@ -129,21 +211,19 @@ fun PlayerControls(model: ReproductorModel, cancionActual: Cancion, album: Album
     }
 }
 
-fun durationParsed(tiempo: Int): String{
-    val minutos = tiempo/60
-    val segundos = tiempo - (minutos*60)
+fun durationParsed(tiempo: Int): String {
+    val minutos = tiempo / 60
+    val segundos = tiempo - (minutos * 60)
     var minutosString = "" + minutos
     var segundosString = "" + segundos
-    if(segundos<10) segundosString = "0$segundosString"
-    if(minutos<10) minutosString = "0$minutosString"
+    if (segundos < 10) segundosString = "0$segundosString"
+    if (minutos < 10) minutosString = "0$minutosString"
     return "$minutosString:$segundosString"
 }
 
 
-
-
 @Composable
-fun SliderView(cancionActual: Cancion){
+fun SliderView(cancionActual: Cancion) {
     val model: ReproductorModel = viewModel()
     val duracion = model.duracion.collectAsState()
     val progreso = model.progreso.collectAsState()
@@ -153,22 +233,22 @@ fun SliderView(cancionActual: Cancion){
             .padding(10.dp)
             .fillMaxWidth()
     ) {
-        Slider(value = progreso.value.toFloat(), onValueChange = { model.changeProgreso(it.toInt())}, valueRange = 0f..duracion.value.toFloat(),
-            colors = SliderDefaults.colors(thumbColor = AppColors.verde))
+        Slider(
+            value = progreso.value.toFloat(),
+            onValueChange = { model.changeProgreso(it.toInt()) },
+            valueRange = 0f..duracion.value.toFloat(),
+            colors = SliderDefaults.colors(thumbColor = AppColors.verde)
+        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = durationParsed((progreso.value/1000)), color = Color.White)
-            Text(text = durationParsed(duracion.value/1000), color = Color.White)
+            Text(text = durationParsed((progreso.value / 1000)), color = Color.White)
+            Text(text = durationParsed(duracion.value / 1000), color = Color.White)
         }
     }
 }
 
 
-
-
-
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PantallaPrincipalPreview(){
-    PantallaReproductor(album = Albums.Nightmare,0,false)
+fun PantallaPrincipalPreview() {
+    PantallaReproductor(album = Albums.Nightmare, 0, false, navController = NavHostController(LocalContext.current))
 }
