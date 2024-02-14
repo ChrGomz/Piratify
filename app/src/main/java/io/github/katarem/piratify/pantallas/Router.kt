@@ -6,6 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,34 +22,49 @@ import io.github.katarem.piratify.utils.UIControls
 fun Router() {
     val navController = rememberNavController()
 
+    val context = LocalContext.current
+
     val entradaNavActual by navController.currentBackStackEntryAsState()
 
     val rutaActual = entradaNavActual?.destination?.route
 
     val viewModelScaffold: ScaffoldViewModel = viewModel()
+
     Scaffold(
-        topBar = { Header(goBack = { navController.popBackStack() }) },
+        topBar = {
+            if (viewModelScaffold.mostarBarras.value) {
+                Header(goBack = { navController.popBackStack() })
+            }
+        },
         bottomBar = {
-            UIControls(gotoHome = {
-                if (rutaActual != Rutas.PantallaPlaylists.ruta) navController.navigate(
-                    Rutas.PantallaPlaylists.ruta
+            if (viewModelScaffold.mostarBarras.value) {
+                UIControls(
+                    gotoHome = {
+                        if (rutaActual != Rutas.PantallaPlaylists.ruta) navController.navigate(
+                            Rutas.PantallaPlaylists.ruta
+                        )
+                    },
+                    gotoAllCanciones = {
+                        if (rutaActual != Rutas.PantallaAllCanciones.ruta) navController.navigate(
+                            Rutas.PantallaAllCanciones.ruta
+                        )
+                    }
                 )
-            },
-                gotoAllCanciones = {
-                    if (rutaActual != Rutas.PantallaAllCanciones.ruta) navController.navigate(
-                        Rutas.PantallaAllCanciones.ruta
-                    )
-                })
+            }
         },
         content = { paddingValues ->
             Surface(modifier = Modifier.padding(paddingValues)) {
                 NavHost(
                     navController = navController,
-                    startDestination = Rutas.PantallaPlaylists.ruta
+                    startDestination = Rutas.PantallaLogin.ruta
                 ) {
+                    composable(Rutas.PantallaLogin.ruta) {
+                        PantallaLogin(navController)
+                    }
                     composable(Rutas.PantallaPlaylists.ruta) {
                         viewModelScaffold.changeRuta(Rutas.PantallaPlaylists.ruta)
-                        PantallaPlaylists(viewModelScaffold, navController)
+                        viewModelScaffold.mostarBarras.value = true
+                        PantallaPlaylists(viewModelScaffold, navController, context)
                     }
                     composable(Rutas.PantallaReproductor.ruta + "/{album}/{index}/{isShuffle}") {
                         viewModelScaffold.changeRuta(Rutas.PantallaReproductor.ruta)
@@ -60,7 +76,12 @@ fun Router() {
                                 albumName
                             )!!, index, isShuffle, navController
                         )
-                        else PantallaReproductor(Albums.forName(albumName)!!, index, isShuffle, navController)
+                        else PantallaReproductor(
+                            Albums.forName(albumName)!!,
+                            index,
+                            isShuffle,
+                            navController
+                        )
                     }
                     composable(Rutas.PantallaAlbum.ruta + "/{album}") {
                         viewModelScaffold.changeRuta(Rutas.PantallaAlbum.ruta)
@@ -81,5 +102,6 @@ fun Router() {
                     }
                 }
             }
-        })
+        }
+    )
 }

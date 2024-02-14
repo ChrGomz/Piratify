@@ -1,17 +1,16 @@
 package io.github.katarem.piratify.model
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import io.github.katarem.piratify.entities.Album
 import io.github.katarem.piratify.entities.Albums
-import io.github.katarem.piratify.entities.Cancion
 import io.github.katarem.piratify.entities.Playlists
 import io.github.katarem.piratify.pantallas.Rutas
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class ScaffoldViewModel: ViewModel(){
+class ScaffoldViewModel : ViewModel() {
+
+    val mostarBarras = mutableStateOf(false)
 
     //Aquí tenemos los álbumes y playlists que usamos en la app
     private var _albums = MutableStateFlow(Albums.albums)
@@ -30,17 +29,19 @@ class ScaffoldViewModel: ViewModel(){
     val playlists = _playlists.asStateFlow()
     val query = _query.asStateFlow()
     val filteredSongs = _filteredSongs.asStateFlow()
-    fun changeRuta(newRuta: String){
+    fun changeRuta(newRuta: String) {
         _rutaActual.value = newRuta
     }
-    fun changeQuery(newQuery: String){
+
+    fun changeQuery(newQuery: String) {
         _query.value = newQuery
         filter(_query.value)
     }
 
-    private fun filter(query: String){
-        if(query.isEmpty()) _filteredSongs.value = Albums.TodasLasCanciones.canciones
-        else _filteredSongs.value = _allSongs.filter { cancion -> cancion.nombre.startsWith(query,true) }
+    private fun filter(query: String) {
+        if (query.isEmpty()) _filteredSongs.value = Albums.TodasLasCanciones.canciones
+        else _filteredSongs.value =
+            _allSongs.filter { cancion -> cancion.nombre.startsWith(query, true) }
     }
 
 
